@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메이플 심플 타이머</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="icon" href="favicon.png" type="image/png">
+</head>
+<body>
+    <div class="app-title">MAPLE TIMER</div>
+    <div class="main-card">
+        <div class="volume-row">
+            <span id="volumeIcon" class="volume-icon">🔊</span>
+            <input type="range" id="volumeControl" min="0" max="100" value="30">
+        </div>
+
+        <div class="content-wrapper">
+            <!-- 좌측 패널: 메인 타이머 영역 -->
+            <div class="left-panel">
+                <div class="main-controls">
+                    <div class="input-row">
+                        <div class="input-group">
+                            <span class="input-icon">⏱</span>
+                            <input type="number" id="timerDuration" placeholder="시간" value="100" />
+                            <span class="input-unit">SEC</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="timer-container">
+                    <svg class="progress-ring" width="280" height="280"> <!-- 크기 소폭 조절 -->
+                        <circle class="progress-ring__circle-bg" stroke="#333" stroke-width="10" fill="transparent" r="125" cx="140" cy="140"/>
+                        <circle class="progress-ring__circle" stroke="#ffcc00" stroke-width="10" fill="transparent" r="125" cx="140" cy="140"/>
+                    </svg>
+                    <div class="timer-text">
+                        <div id="countdownTimer">01:40</div>
+                        <div id="timer" class="elapsed-time">00:00</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 우측 패널: 보조 타이머 리스트 영역 -->
+            <div class="right-panel">
+                <div id="miniTimersList" class="mini-timers-list">
+                    <!-- 동적 추가 -->
+                </div>
+                <button id="addMiniTimer" class="add-mini-btn">보조 타이머 추가</button>
+            </div>
+        </div> <!-- end of content-wrapper -->
+
+        <div class="button-container full-width">
+            <button id="start" class="start">START</button>
+        </div>
+    </div> <!-- end of main-card -->
+    <audio id="beep" src="beep.mp3" preload="auto"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html> 
