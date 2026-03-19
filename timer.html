@@ -15,7 +15,7 @@
             <input type="range" id="volumeControl" min="0" max="100" value="30">
         </div>
 
-        <div class="content-wrapper">
+        <div class="content-wrapper mini-panel-hidden">
             <!-- 좌측 패널: 메인 타이머 영역 -->
             <div class="left-panel">
                 <div class="main-controls">
@@ -38,6 +38,7 @@
                         <div id="timer" class="elapsed-time">00:00</div>
                     </div>
                 </div>
+
             </div>
 
             <!-- 우측 패널: 보조 타이머 리스트 영역 -->
@@ -48,6 +49,10 @@
                 <button id="addMiniTimer" class="add-mini-btn">보조 타이머 추가</button>
             </div>
         </div> <!-- end of content-wrapper -->
+
+        <div class="panel-toggle-row">
+            <button id="toggleMiniPanel" class="panel-toggle-btn" type="button">보조 타이머 <span class="panel-toggle-arrow panel-toggle-arrow-right" aria-hidden="true"></span></button>
+        </div>
 
         <div class="button-container full-width">
             <button id="start" class="start">START</button>

@@ -2,6 +2,8 @@ let countdownSeconds = 0;
 let animationId;
 let randomSoundIntervalId;
 let timerWorker;
+let isMiniPanelOpen = false;
+let miniProgressAnimationId = null;
 
 // Web Worker를 문자열로 생성 (별도 파일 없이 사용 가능)
 const workerCode = `
@@ -80,6 +82,110 @@ function initializeCountdownDisplay() {
     setProgress(100);
 }
 
+function formatTime(totalSeconds) {
+    const safeSeconds = Math.max(0, parseInt(totalSeconds, 10) || 0);
+    const minutes = Math.floor(safeSeconds / 60);
+    const secs = safeSeconds % 60;
+    return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function parseMiniTimerDuration(value, fallback = 60) {
+    const text = String(value || '').trim();
+    if (!text) return fallback;
+
+    if (text.includes(':')) {
+        const [minutesPart, secondsPart] = text.split(':');
+        const minutes = parseInt(minutesPart, 10);
+        const seconds = parseInt(secondsPart, 10);
+        if (Number.isNaN(minutes) || Number.isNaN(seconds) || seconds < 0 || seconds > 59) {
+            return fallback;
+        }
+        return Math.max(1, (minutes * 60) + seconds);
+    }
+
+    const numericValue = parseInt(text, 10);
+    if (Number.isNaN(numericValue)) return fallback;
+    return Math.max(1, numericValue);
+}
+
+function renderMiniPanelToggleLabel(isOpen) {
+    const arrowClass = isOpen ? 'panel-toggle-arrow-left' : 'panel-toggle-arrow-right';
+    return `보조 타이머 <span class="panel-toggle-arrow ${arrowClass}" aria-hidden="true"></span>`;
+}
+
+function sanitizeMiniTimerLabel(value) {
+    return String(value || '').trim().slice(0, 10);
+}
+
+function deactivateAllMiniTimers() {
+    miniTimers.forEach(timer => {
+        timer.wasActiveBeforePanelClose = timer.toggle.checked;
+        timer.toggle.checked = false;
+        timer.labelInput.disabled = true;
+        timer.input.disabled = true;
+        timer.element.classList.add('inactive');
+        stopSingleMiniTimer(timer);
+    });
+}
+
+function restoreMiniTimersAfterPanelOpen() {
+    miniTimers.forEach(timer => {
+        if (!timer.wasActiveBeforePanelClose) return;
+        timer.toggle.checked = true;
+        timer.labelInput.disabled = false;
+        timer.input.disabled = false;
+        timer.element.classList.remove('inactive');
+        timer.wasActiveBeforePanelClose = false;
+    });
+}
+
+function updateMiniProgressVisual(timer, now = performance.now()) {
+    if (!timer.progressFill) return;
+
+    const totalMs = Math.max(1000, (timer.durationSeconds || 1) * 1000);
+    let progressRatio = 1;
+
+    if (timer.intervalId && timer.cycleStartTimeMs) {
+        const elapsedMs = Math.max(0, now - timer.cycleStartTimeMs);
+        progressRatio = Math.max(0, 1 - (elapsedMs / totalMs));
+    } else {
+        progressRatio = Math.max(0, Math.min(1, (timer.remainingSeconds || 0) / (timer.durationSeconds || 1)));
+    }
+
+    timer.progressFill.style.transform = `scaleX(${progressRatio})`;
+}
+
+function stopMiniProgressLoop() {
+    if (miniProgressAnimationId) {
+        cancelAnimationFrame(miniProgressAnimationId);
+        miniProgressAnimationId = null;
+    }
+}
+
+function runMiniProgressLoop(now) {
+    let hasRunningMiniTimer = false;
+
+    miniTimers.forEach(timer => {
+        if (!timer.toggle.checked) return;
+        updateMiniProgressVisual(timer, now);
+        if (timer.intervalId) {
+            hasRunningMiniTimer = true;
+        }
+    });
+
+    if (hasRunningMiniTimer) {
+        miniProgressAnimationId = requestAnimationFrame(runMiniProgressLoop);
+    } else {
+        miniProgressAnimationId = null;
+    }
+}
+
+function ensureMiniProgressLoop() {
+    if (!miniProgressAnimationId) {
+        miniProgressAnimationId = requestAnimationFrame(runMiniProgressLoop);
+    }
+}
+
 // 보조 타이머 객체 리스트
 let miniTimers = [];
 
@@ -88,8 +194,10 @@ function saveSettings() {
     const settings = {
         mainDuration: document.getElementById('timerDuration').value,
         volume: volumeControl.value,
+        miniPanelOpen: isMiniPanelOpen,
         miniTimers: miniTimers.map(t => ({
-            duration: t.input.value,
+            label: t.labelInput.value,
+            duration: t.durationSeconds,
             active: t.toggle.checked
         }))
     };
@@ -99,9 +207,13 @@ function saveSettings() {
 // 설정 불러오기 함수
 function loadSettings() {
     const saved = localStorage.getItem('mapleTimerSettings');
-    if (!saved) return;
+    if (!saved) {
+        applyMiniPanelState(false);
+        return;
+    }
 
     const settings = JSON.parse(saved);
+    applyMiniPanelState(Boolean(settings.miniPanelOpen));
     
     // 메인 설정 복원
     if (settings.mainDuration) {
@@ -120,12 +232,30 @@ function loadSettings() {
         miniTimers = [];
         
         settings.miniTimers.forEach(data => {
-            createMiniTimerRow(data.duration, data.active);
+            createMiniTimerRow(data.duration, data.active, data.label);
         });
     }
 }
 
-function createMiniTimerRow(defaultDuration = 60, defaultActive = true) {
+function applyMiniPanelState(isOpen) {
+    isMiniPanelOpen = isOpen;
+    const contentWrapper = document.querySelector('.content-wrapper');
+    const toggleButton = document.getElementById('toggleMiniPanel');
+    if (!contentWrapper || !toggleButton) return;
+
+    if (!isOpen) {
+        deactivateAllMiniTimers();
+    } else {
+        restoreMiniTimersAfterPanelOpen();
+    }
+
+    contentWrapper.classList.toggle('mini-panel-hidden', !isOpen);
+    toggleButton.innerHTML = renderMiniPanelToggleLabel(isOpen);
+}
+
+function createMiniTimerRow(defaultDuration = 60, defaultActive = true, defaultLabel = '') {
+    const initialDuration = parseMiniTimerDuration(defaultDuration, 60);
+    const initialLabel = sanitizeMiniTimerLabel(defaultLabel);
     const timerId = Date.now() + Math.random();
     const row = document.createElement('div');
     row.className = `mini-timer-row ${defaultActive ? '' : 'inactive'}`;
@@ -135,10 +265,12 @@ function createMiniTimerRow(defaultDuration = 60, defaultActive = true) {
             <input type="checkbox" class="mini-toggle" ${defaultActive ? 'checked' : ''}>
             <span class="slider"></span>
         </label>
-        <div class="mini-display">01:00</div>
-        <div class="mini-input-group">
-            <input type="number" class="mini-timer-input" value="${defaultDuration}" min="1" ${defaultActive ? '' : 'disabled'}>
-            <span class="mini-unit">SEC</span>
+        <div class="mini-content">
+            <input type="text" class="mini-label-input" value="${initialLabel}" maxlength="10" placeholder="이름" spellcheck="false" ${defaultActive ? '' : 'disabled'}>
+            <input type="text" class="mini-time-input" value="${formatTime(initialDuration)}" inputmode="numeric" spellcheck="false" ${defaultActive ? '' : 'disabled'}>
+            <div class="mini-progress-track" aria-hidden="true">
+                <div class="mini-progress-fill"></div>
+            </div>
         </div>
         <button class="remove-mini-btn" title="삭제">×</button>
     `;
@@ -146,29 +278,58 @@ function createMiniTimerRow(defaultDuration = 60, defaultActive = true) {
     const timerObj = {
         id: timerId,
         element: row,
-        remainingSeconds: parseInt(defaultDuration, 10),
+        durationSeconds: initialDuration,
+        remainingSeconds: initialDuration,
         intervalId: null,
+        cycleStartTimeMs: null,
+        wasActiveBeforePanelClose: false,
         get toggle() { return row.querySelector('.mini-toggle'); },
-        get input() { return row.querySelector('.mini-timer-input'); },
-        get display() { return row.querySelector('.mini-display'); }
+        get labelInput() { return row.querySelector('.mini-label-input'); },
+        get input() { return row.querySelector('.mini-time-input'); },
+        get progressFill() { return row.querySelector('.mini-progress-fill'); }
     };
 
     // 토글 이벤트
     timerObj.toggle.addEventListener('change', () => {
         const isActive = timerObj.toggle.checked;
+        timerObj.wasActiveBeforePanelClose = false;
+        timerObj.labelInput.disabled = !isActive;
         timerObj.input.disabled = !isActive;
         row.classList.toggle('inactive', !isActive);
         if (!isActive) stopSingleMiniTimer(timerObj);
         saveSettings();
     });
 
-    // 입력 이벤트
-    timerObj.input.addEventListener('input', () => {
-        if (!animationId) {
-            timerObj.remainingSeconds = parseInt(timerObj.input.value, 10) || 0;
-            updateSingleMiniDisplay(timerObj);
-        }
+    timerObj.labelInput.addEventListener('focus', () => {
+        timerObj.labelInput.select();
+    });
+
+    timerObj.labelInput.addEventListener('input', () => {
+        timerObj.labelInput.value = sanitizeMiniTimerLabel(timerObj.labelInput.value);
         saveSettings();
+    });
+
+    // 입력 이벤트
+    timerObj.input.addEventListener('focus', () => {
+        timerObj.input.select();
+    });
+
+    timerObj.input.addEventListener('blur', () => {
+        const fallback = timerObj.durationSeconds || 60;
+        const parsedSeconds = parseMiniTimerDuration(timerObj.input.value, fallback);
+        timerObj.durationSeconds = parsedSeconds;
+        if (!timerObj.intervalId) {
+            timerObj.remainingSeconds = parsedSeconds;
+        }
+        updateSingleMiniDisplay(timerObj);
+        saveSettings();
+    });
+
+    timerObj.input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            timerObj.input.blur();
+        }
     });
 
     // 삭제 이벤트
@@ -185,9 +346,8 @@ function createMiniTimerRow(defaultDuration = 60, defaultActive = true) {
 }
 
 function updateSingleMiniDisplay(timer) {
-    const minutes = Math.floor(timer.remainingSeconds / 60);
-    const secs = timer.remainingSeconds % 60;
-    timer.display.innerText = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+    timer.input.value = formatTime(timer.remainingSeconds);
+    updateMiniProgressVisual(timer);
 }
 
 function playMiniAlarm() {
@@ -206,8 +366,9 @@ function startAllMiniTimers() {
     miniTimers.forEach(timer => {
         if (!timer.toggle.checked) return;
 
-        const totalSeconds = parseInt(timer.input.value, 10) || 60;
+        const totalSeconds = timer.durationSeconds || 60;
         timer.remainingSeconds = totalSeconds;
+        timer.cycleStartTimeMs = performance.now();
         updateSingleMiniDisplay(timer);
 
         if (timer.intervalId) clearInterval(timer.intervalId);
@@ -219,10 +380,13 @@ function startAllMiniTimers() {
                 if (timer.remainingSeconds === 0) {
                     playMiniAlarm();
                     timer.remainingSeconds = totalSeconds;
+                    timer.cycleStartTimeMs = performance.now();
                 }
             }
         }, 1000);
     });
+
+    ensureMiniProgressLoop();
 }
 
 function stopAllMiniTimers() {
@@ -234,8 +398,12 @@ function stopSingleMiniTimer(timer) {
         clearInterval(timer.intervalId);
         timer.intervalId = null;
     }
-    timer.remainingSeconds = parseInt(timer.input.value, 10) || 60;
+    timer.cycleStartTimeMs = null;
+    timer.remainingSeconds = timer.durationSeconds || 60;
     updateSingleMiniDisplay(timer);
+    if (!miniTimers.some(t => t.intervalId)) {
+        stopMiniProgressLoop();
+    }
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -249,6 +417,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // 추가 버튼 이벤트
     document.getElementById('addMiniTimer').addEventListener('click', () => {
         createMiniTimerRow();
+        saveSettings();
+    });
+
+    document.getElementById('toggleMiniPanel').addEventListener('click', () => {
+        applyMiniPanelState(!isMiniPanelOpen);
         saveSettings();
     });
 
@@ -352,19 +525,7 @@ function stopTimer() {
     circle.style.stroke = '#ffcc00';
 }
 
-function updateCountdownDisplay() {
-    const countdownTimerDisplay = document.getElementById('countdownTimer');
-    const minutes = Math.floor(countdownSeconds / 60);
-    const secs = countdownSeconds % 60;
-    countdownTimerDisplay.innerText = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
-}
-
-function playRandomBeep() {
-    beepSound.currentTime = 0;
-    beepSound.play().catch(error => console.error("비프 소리 재생 오류:", error));
-}
-
-document.getElementById('start').addEventListener('click', () => {
+function toggleMainTimer() {
     const startButton = document.getElementById('start');
     if (!animationId) {
         startTimer();
@@ -384,6 +545,36 @@ document.getElementById('start').addEventListener('click', () => {
         resetSound.currentTime = 0;
         resetSound.play().catch(e => console.error(e));
     }
+}
+
+function updateCountdownDisplay() {
+    const countdownTimerDisplay = document.getElementById('countdownTimer');
+    const minutes = Math.floor(countdownSeconds / 60);
+    const secs = countdownSeconds % 60;
+    countdownTimerDisplay.innerText = `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
+function playRandomBeep() {
+    beepSound.currentTime = 0;
+    beepSound.play().catch(error => console.error("비프 소리 재생 오류:", error));
+}
+
+document.getElementById('start').addEventListener('click', toggleMainTimer);
+
+document.addEventListener('keydown', (e) => {
+    const activeElement = document.activeElement;
+    const isTypingField = activeElement && (
+        activeElement.tagName === 'INPUT' ||
+        activeElement.tagName === 'TEXTAREA' ||
+        activeElement.isContentEditable
+    );
+
+    if (isTypingField) return;
+    if (e.repeat) return;
+    if (e.code !== 'Space' && e.code !== 'Enter' && e.code !== 'NumpadEnter') return;
+
+    e.preventDefault();
+    toggleMainTimer();
 });
 
 document.getElementById('timerDuration').addEventListener('keypress', (e) => {

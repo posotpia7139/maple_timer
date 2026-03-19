@@ -38,10 +38,97 @@ body {
     display: flex;
     gap: 20px;
     align-items: flex-start;
+    transition: gap 0.35s ease;
+}
+
+.content-wrapper.mini-panel-hidden .right-panel {
+    flex: 0 0 0;
+    width: 0;
+    max-width: 0;
+    min-width: 0;
+    padding: 0;
+    border-width: 0;
+    opacity: 0;
+    transform: translateX(24px);
+    pointer-events: none;
+}
+
+.content-wrapper.mini-panel-hidden {
+    gap: 0;
+}
+
+.panel-toggle-row {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin-top: 0;
+}
+
+.panel-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background-color: #252525;
+    border: 1px solid #444;
+    color: #cfcfcf;
+    width: 100%;
+    padding: 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 1.02rem;
+    font-weight: bold;
+    text-align: center;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+
+.panel-toggle-arrow {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background-color: #333;
+    position: relative;
+    flex: 0 0 auto;
+}
+
+.panel-toggle-arrow::before {
+    content: "";
+    display: block;
+    width: 7px;
+    height: 7px;
+    border-top: 2px solid #ffcc00;
+    border-right: 2px solid #ffcc00;
+}
+
+.panel-toggle-arrow-right::before {
+    transform: rotate(45deg) translate(-1px, 1px);
+}
+
+.panel-toggle-arrow-left::before {
+    transform: rotate(-135deg) translate(-1px, 1px);
+}
+
+.panel-toggle-btn:hover {
+    color: #ffcc00;
+    border-color: #ffcc00;
+    background-color: #2a2a2a;
+}
+
+.panel-toggle-btn:hover .panel-toggle-arrow {
+    background-color: #ffcc00;
+}
+
+.panel-toggle-btn:hover .panel-toggle-arrow::before {
+    border-color: #1f1f1f;
 }
 
 /* 좌측 패널: 메인 타이머 */
 .left-panel {
+    align-self: center;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -54,13 +141,20 @@ body {
 .right-panel {
     display: flex;
     flex-direction: column;
-    width: 260px; 
+    flex: 0 0 300px;
+    width: 300px; 
+    max-width: 300px;
+    min-width: 300px;
     background-color: #1a1a1a;
     border-radius: 10px; 
     padding: 15px;
     border: 1px solid #2a2a2a;
     height: 450px; /* 고정 높이로 변경 */
     box-sizing: border-box;
+    overflow: hidden;
+    opacity: 1;
+    transform: translateX(0);
+    transition: flex-basis 0.35s ease, width 0.35s ease, max-width 0.35s ease, min-width 0.35s ease, padding 0.35s ease, border-width 0.35s ease, opacity 0.25s ease, transform 0.35s ease;
 }
 
 .side-header {
@@ -151,17 +245,24 @@ body {
 
 .mini-timer-row {
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 12px;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 12px 14px;
     background-color: #222;
-    border-radius: 6px; /* 12px -> 6px */
+    border-radius: 10px;
     border: 1px solid #2a2a2a;
-    gap: 8px;
-    margin-bottom: 10px;
+    gap: 12px;
+    margin-bottom: 12px;
 }
 
 .mini-timer-row.inactive {
+    background-color: #1f1f1f;
+}
+
+.mini-timer-row.inactive .mini-switch,
+.mini-timer-row.inactive .mini-label-input,
+.mini-timer-row.inactive .mini-time-input,
+.mini-timer-row.inactive .mini-progress-track {
     opacity: 0.4;
 }
 
@@ -169,7 +270,7 @@ body {
     margin-top: 0; 
     background-color: #252525;
     border: 1px solid #444; /* dashed -> solid 변경 */
-    color: #888;
+    color: #cfcfcf;
     width: 100%;
     padding: 12px;
     border-radius: 6px; 
@@ -189,8 +290,10 @@ body {
 .mini-switch {
     position: relative;
     display: inline-block;
-    width: 38px;
-    height: 20px;
+    flex: 0 0 auto;
+    width: 42px;
+    height: 22px;
+    align-self: center;
 }
 
 .mini-switch input { opacity: 0; width: 0; height: 0; }
@@ -198,72 +301,125 @@ body {
 .slider {
     position: absolute; cursor: pointer;
     top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #333; transition: .4s; border-radius: 10px; /* 20px -> 10px */
+    background-color: #333; transition: .4s; border-radius: 11px;
 }
 
 .slider:before {
     position: absolute; content: "";
-    height: 14px; width: 14px;
+    height: 16px; width: 16px;
     left: 3px; bottom: 3px;
     background-color: #eee; transition: .4s; border-radius: 50%;
 }
 
 input:checked + .slider { background-color: #ffcc00; }
-input:checked + .slider:before { transform: translateX(18px); background-color: #fff; }
+input:checked + .slider:before { transform: translateX(20px); background-color: #fff; }
 
-.mini-display {
-    font-size: 0.95rem;
-    font-weight: bold;
-    color: #ffcc00;
-    flex-grow: 1;
-    text-align: center;
-}
-
-.mini-input-group {
+.mini-content {
     display: flex;
+    flex: 1 1 auto;
+    min-width: 0;
+    flex-direction: column;
     align-items: center;
-    gap: 2px;
+    gap: 9px;
 }
 
-.mini-timer-input {
+.mini-label-input {
     background: transparent;
-    border: 1px solid #333;
-    border-radius: 4px; /* 그대로 유지 또는 미세 조정 */
-    color: #fff;
-    font-size: 0.85rem;
-    font-weight: bold;
-    width: 32px;
+    border: none;
+    color: #cfcfcf;
+    font-size: 0.88rem;
+    font-weight: 600;
+    width: 100%;
+    min-width: 0;
     text-align: center;
-    padding: 1px 0;
-    -moz-appearance: textfield;
+    padding: 0 0 1px;
+    outline: none;
+    cursor: text;
+    line-height: 1.2;
 }
 
-.mini-timer-input::-webkit-inner-spin-button, 
-.mini-timer-input::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+.mini-label-input::placeholder {
+    color: #8a8a8a;
 }
 
-.mini-unit {
-    font-size: 0.6rem;
-    color: #555;
+.mini-label-input:disabled {
+    color: #cfcfcf;
+    cursor: default;
+}
+
+.mini-time-input {
+    background: transparent;
+    border: none;
+    color: #ffcc00;
+    font-size: 1.18rem;
     font-weight: bold;
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+    padding: 0;
+    outline: none;
+    cursor: text;
+    line-height: 1.15;
+}
+
+.mini-time-input:disabled {
+    color: #ffcc00;
+    cursor: default;
+}
+
+.mini-progress-track {
+    position: relative;
+    width: 100%;
+    height: 8px;
+    margin-top: 2px;
+    border-radius: 999px;
+    background-color: #333;
+    overflow: hidden;
+}
+
+.mini-progress-fill {
+    height: 100%;
+    width: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #ffcc00 0%, #ff9900 100%);
+    transform: scaleX(1);
+    transform-origin: left center;
 }
 
 .remove-mini-btn {
-    background: transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    background: rgba(255, 77, 77, 0.08);
     border: none;
     color: #ff4d4d;
-    font-size: 1.1rem;
+    border-radius: 999px;
+    font-size: 1.05rem;
+    font-weight: 700;
+    flex: 0 0 auto;
     cursor: pointer;
-    padding: 0 2px;
-    opacity: 0.5;
+    padding: 0;
+    align-self: center;
+    opacity: 0.9;
     transition: all 0.2s;
+}
+
+.mini-timer-row.inactive .remove-mini-btn {
+    opacity: 0.72;
+}
+
+.mini-timer-row.inactive .remove-mini-btn:hover {
+    opacity: 1;
+    color: #ff6b6b;
+    background: rgba(255, 77, 77, 0.16);
 }
 
 .remove-mini-btn:hover {
     opacity: 1;
-    transform: scale(1.2);
+    background: rgba(255, 77, 77, 0.16);
+    transform: scale(1.08);
 }
 
 /* 볼륨 슬라이더 - 상단 고정 */
@@ -315,7 +471,7 @@ input:checked + .slider:before { transform: translateX(18px); background-color: 
 }
 
 .elapsed-time {
-    font-size: 1.8rem;
+    font-size: 2.592rem;
     color: #666;
     margin-top: 15px;
 }
@@ -333,8 +489,7 @@ input:checked + .slider:before { transform: translateX(18px); background-color: 
     color: white;
     font-weight: bold;
     border: none;
-    width: 85%; /* 전체 너비의 85%로 축소 */
-    max-width: 600px; 
+    width: 100%;
     padding: 20px;
     font-size: 1.6rem;
     border-radius: 9px; 
@@ -350,6 +505,22 @@ input:checked + .slider:before { transform: translateX(18px); background-color: 
 }
 
 #start.active {
-    background: #444;
-    box-shadow: none;
+    background: linear-gradient(180deg, #575757 0%, #444444 100%);
+    box-shadow: 0 0 0 rgba(255, 255, 255, 0), 0 0 0 rgba(255, 255, 255, 0);
+    animation: resetBreathing 2.4s ease-in-out infinite;
+}
+
+@keyframes resetBreathing {
+    0% {
+        filter: brightness(1);
+        box-shadow: 0 0 0 rgba(255, 255, 255, 0), 0 0 0 rgba(255, 255, 255, 0);
+    }
+    50% {
+        filter: brightness(1.14);
+        box-shadow: 0 0 18px rgba(255, 255, 255, 0.12), 0 0 36px rgba(255, 255, 255, 0.08);
+    }
+    100% {
+        filter: brightness(1);
+        box-shadow: 0 0 0 rgba(255, 255, 255, 0), 0 0 0 rgba(255, 255, 255, 0);
+    }
 }
