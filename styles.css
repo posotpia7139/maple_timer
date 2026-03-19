@@ -232,15 +232,12 @@ body {
     flex-direction: column;
     flex-grow: 1; /* 가용한 공간 모두 차지 */
     overflow-y: auto;
-    padding-right: 5px;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
 }
 
 .mini-timers-list::-webkit-scrollbar {
-    width: 4px;
-}
-.mini-timers-list::-webkit-scrollbar-thumb {
-    background-color: #333;
-    border-radius: 10px;
+    display: none;
 }
 
 .mini-timer-row {
@@ -419,7 +416,6 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 .remove-mini-btn:hover {
     opacity: 1;
     background: rgba(255, 77, 77, 0.16);
-    transform: scale(1.08);
 }
 
 /* 볼륨 슬라이더 - 상단 고정 */

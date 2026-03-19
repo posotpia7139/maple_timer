@@ -114,7 +114,15 @@ function renderMiniPanelToggleLabel(isOpen) {
 }
 
 function sanitizeMiniTimerLabel(value) {
-    return String(value || '').trim().slice(0, 10);
+    return String(value || '').replace(/[\r\n]/g, '').slice(0, 10);
+}
+
+function escapeHtmlAttribute(value) {
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 }
 
 function deactivateAllMiniTimers() {
@@ -256,6 +264,7 @@ function applyMiniPanelState(isOpen) {
 function createMiniTimerRow(defaultDuration = 60, defaultActive = true, defaultLabel = '') {
     const initialDuration = parseMiniTimerDuration(defaultDuration, 60);
     const initialLabel = sanitizeMiniTimerLabel(defaultLabel);
+    const safeInitialLabel = escapeHtmlAttribute(initialLabel);
     const timerId = Date.now() + Math.random();
     const row = document.createElement('div');
     row.className = `mini-timer-row ${defaultActive ? '' : 'inactive'}`;
@@ -266,7 +275,7 @@ function createMiniTimerRow(defaultDuration = 60, defaultActive = true, defaultL
             <span class="slider"></span>
         </label>
         <div class="mini-content">
-            <input type="text" class="mini-label-input" value="${initialLabel}" maxlength="10" placeholder="이름" spellcheck="false" ${defaultActive ? '' : 'disabled'}>
+            <input type="text" class="mini-label-input" value="${safeInitialLabel}" maxlength="10" placeholder="이름" spellcheck="false" ${defaultActive ? '' : 'disabled'}>
             <input type="text" class="mini-time-input" value="${formatTime(initialDuration)}" inputmode="numeric" spellcheck="false" ${defaultActive ? '' : 'disabled'}>
             <div class="mini-progress-track" aria-hidden="true">
                 <div class="mini-progress-fill"></div>
