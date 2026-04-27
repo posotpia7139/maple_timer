@@ -39,8 +39,48 @@ function setProgress(percent) {
 const startSound = new Audio('start.mp3');
 const resetSound = new Audio('reset.mp3');
 const beepSound = new Audio('beep.mp3');
-const silentSound = new Audio('silent.mp3'); // 백그라운드 유지를 위한 무음 사운드
-silentSound.loop = true;
+// const silentSound = new Audio('silent.mp3'); // 백그라운드 유지를 위한 무음 사운드
+// silentSound.loop = true;
+
+// Web Audio API를 이용한 백그라운드 유지 로직
+let audioCtx = null;
+
+function initWebAudio() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+}
+
+// 20초마다 브라우저를 깨우기 위한 짧은 무음 펄스
+function playSilentPulse() {
+    if (!audioCtx) return;
+    
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    // 사용자는 못 듣지만 브라우저는 인식하는 초미세 볼륨
+    gain.gain.setValueAtTime(0.001, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.00001, audioCtx.currentTime + 0.1);
+    
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.1); // 0.1초 후 즉시 정지
+}
+
+// Page Visibility API: 탭 상태 변화 감지
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && animationId) {
+        // 탭으로 돌아왔을 때 오디오 컨텍스트가 정지되어 있다면 재개
+        if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+});
 
 const volumeControl = document.getElementById('volumeControl');
 const volumeIcon = document.getElementById('volumeIcon');
@@ -53,7 +93,7 @@ function updateAllVolumes() {
     beepSound.volume = volume;
     startSound.volume = volume;
     resetSound.volume = volume;
-    silentSound.volume = 0.01; // 아주 작게 설정하여 연결 유지
+    // silentSound.volume = 0.01; // 아주 작게 설정하여 연결 유지
 
     // 볼륨이 0이면 음소거 아이콘으로 변경
     if (value === 0) {
@@ -68,7 +108,15 @@ function playRandomBeep2to20() {
     const randomNumber = Math.floor(Math.random() * 3) + 1;
     const randomSound = new Audio(`sounds/beep${randomNumber}.mp3`);
     randomSound.volume = (volumeControl.value / 100) * 0.05; 
-    randomSound.play().catch(error => console.error("랜덤 비프음 재생 오류:", error));
+    randomSound.play()
+        .then(() => {
+            // 0.05초(50ms) 후에 재생 중지
+            setTimeout(() => {
+                randomSound.pause();
+                randomSound.currentTime = 0;
+            }, 50);
+        })
+        .catch(error => console.error("랜덤 비프음 재생 오류:", error));
 }
 
 updateAllVolumes();
@@ -453,20 +501,32 @@ let specifiedDuration;
 let lastLoggedSecond = -1;
 let isWarningState = false;
 
+let pulseTickCounter = 0; // 20초 펄스를 위한 카운터
+
 function startTimer() {
     const durationInput = document.getElementById('timerDuration');
     specifiedDuration = parseInt(durationInput.value, 10) || 100;
     startTime = Date.now();
     lastLoggedSecond = -1;
     isWarningState = false;
+    pulseTickCounter = 0; // 카운터 초기화
 
-    silentSound.play().catch(e => console.error(e));
+    // silentSound.play().catch(e => console.error(e));
+    initWebAudio(); // Web Audio API 준비 (재생은 안 함)
     timerWorker.postMessage('start');
     
     timerWorker.onmessage = function(e) {
         if (e.data === 'tick') {
             const totalElapsedTimeMs = Date.now() - startTime;
             const currentTotalSeconds = Math.floor(totalElapsedTimeMs / 1000);
+
+            // 20초마다 무음 펄스 재생 (백그라운드 유지용)
+            // 100ms마다 tick이 오므로 200번마다 20초임
+            pulseTickCounter++;
+            if (pulseTickCounter >= 200) {
+                playSilentPulse();
+                pulseTickCounter = 0;
+            }
 
             if (currentTotalSeconds !== lastLoggedSecond) {
                 const cycleElapsedSeconds = currentTotalSeconds % specifiedDuration;
@@ -527,8 +587,9 @@ function stopTimer() {
         timerWorker.postMessage('stop');
     }
     clearInterval(randomSoundIntervalId);
-    silentSound.pause();
-    silentSound.currentTime = 0;
+    // silentSound.pause();
+    // silentSound.currentTime = 0;
+    // stopWebAudio(); // 이제 지속 재생이 아니므로 호출 불필요
     
     isWarningState = false;
     circle.style.stroke = '#ffcc00';
