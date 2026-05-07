@@ -110,17 +110,28 @@ function playRandomBeep2to20() {
     randomSound.volume = (volumeControl.value / 100) * 0.05; 
     randomSound.play()
         .then(() => {
-            // 0.05초(50ms) 후에 재생 중지
+            // 0.01초(10ms) 후에 재생 중지
             setTimeout(() => {
                 randomSound.pause();
                 randomSound.currentTime = 0;
-            }, 50);
+            }, 10);
         })
         .catch(error => console.error("랜덤 비프음 재생 오류:", error));
 }
 
 updateAllVolumes();
-volumeControl.addEventListener('input', updateAllVolumes);
+// 볼륨 조절 및 포커스 관리
+volumeControl.addEventListener('input', () => {
+    updateAllVolumes();
+    saveSettings();
+});
+volumeControl.addEventListener('change', () => {
+    volumeControl.blur(); // 조절 완료 시 포커스 해제
+});
+volumeControl.addEventListener('mousedown', () => {
+    // 클릭하는 순간 포커스 테두리가 생기지 않도록 blur 처리 (약간의 지연 필요)
+    setTimeout(() => volumeControl.blur(), 0);
+});
 
 function initializeCountdownDisplay() {
     const durationInput = document.getElementById('timerDuration');
@@ -491,10 +502,6 @@ document.getElementById('timerDuration').addEventListener('input', () => {
     initializeCountdownDisplay();
     saveSettings();
 });
-volumeControl.addEventListener('input', () => {
-    updateAllVolumes();
-    saveSettings();
-});
 
 let startTime;
 let specifiedDuration;
@@ -520,13 +527,14 @@ function startTimer() {
             const totalElapsedTimeMs = Date.now() - startTime;
             const currentTotalSeconds = Math.floor(totalElapsedTimeMs / 1000);
 
-            // 20초마다 무음 펄스 재생 (백그라운드 유지용)
-            // 100ms마다 tick이 오므로 200번마다 20초임
+            // 20초마다 무음 펄스 재생 (비활성화됨)
             pulseTickCounter++;
+            /*
             if (pulseTickCounter >= 200) {
                 playSilentPulse();
                 pulseTickCounter = 0;
             }
+            */
 
             if (currentTotalSeconds !== lastLoggedSecond) {
                 const cycleElapsedSeconds = currentTotalSeconds % specifiedDuration;
@@ -633,8 +641,9 @@ document.getElementById('start').addEventListener('click', toggleMainTimer);
 
 document.addEventListener('keydown', (e) => {
     const activeElement = document.activeElement;
+    // 텍스트를 입력하는 필드인지 더 정확하게 판별 (range, checkbox 등은 제외)
     const isTypingField = activeElement && (
-        activeElement.tagName === 'INPUT' ||
+        (activeElement.tagName === 'INPUT' && ['text', 'number', 'password', 'email', 'tel', 'url'].includes(activeElement.type)) ||
         activeElement.tagName === 'TEXTAREA' ||
         activeElement.isContentEditable
     );
