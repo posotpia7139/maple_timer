@@ -4,7 +4,7 @@ let randomSoundIntervalId;
 let timerWorker;
 let isMiniPanelOpen = false;
 let miniProgressAnimationId = null;
-let volumeTestAlarmTimeoutId = null; // 음량 조절 시 완료 알림 테스트(0.3초 지연)용
+let volumeTestAlarmTimeoutId = null; // 볼륨 조절 완료(드래그 종료) 후 알림음 재생(0.25초 지연)용
 
 // Web Worker를 문자열로 생성 (별도 파일 없이 사용 가능)
 const workerCode = `
@@ -123,17 +123,20 @@ function playRandomBeep2to20() {
 updateAllVolumes();
 // 볼륨 조절 및 포커스 관리
 volumeControl.addEventListener('input', () => {
+    // 드래그 중에는 소리를 내지 않음(여러 번 중복 출력 방지).
+    // 볼륨 값만 실시간 반영한다.
     updateAllVolumes();
     saveSettings();
-
-    // [테스트용] 음량 조절 시 타이머 완료 알림음(beep.mp3)을 0.25초 후 재생
-    clearTimeout(volumeTestAlarmTimeoutId);
-    volumeTestAlarmTimeoutId = setTimeout(() => {
-        playRandomBeep();
-    }, 250);
 });
 volumeControl.addEventListener('change', () => {
     volumeControl.blur(); // 조절 완료 시 포커스 해제
+
+    // [테스트용] 드래그를 끝내고 손을 뗀 순간(change)에만 알림음 1회 재생(0.225초 지연).
+    // 드래그 중간에 짧게 멈춰도 소리가 반복되지 않는다.
+    clearTimeout(volumeTestAlarmTimeoutId);
+    volumeTestAlarmTimeoutId = setTimeout(() => {
+        playRandomBeep();
+    }, 225);
 });
 volumeControl.addEventListener('mousedown', () => {
     // 클릭하는 순간 포커스 테두리가 생기지 않도록 blur 처리 (약간의 지연 필요)
