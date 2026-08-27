@@ -4,6 +4,7 @@ let randomSoundIntervalId;
 let timerWorker;
 let isMiniPanelOpen = false;
 let miniProgressAnimationId = null;
+let volumeTestAlarmTimeoutId = null; // 음량 조절 시 완료 알림 테스트(0.3초 지연)용
 
 // Web Worker를 문자열로 생성 (별도 파일 없이 사용 가능)
 const workerCode = `
@@ -124,6 +125,12 @@ updateAllVolumes();
 volumeControl.addEventListener('input', () => {
     updateAllVolumes();
     saveSettings();
+
+    // [테스트용] 음량 조절 시 타이머 완료 알림음(beep.mp3)을 0.25초 후 재생
+    clearTimeout(volumeTestAlarmTimeoutId);
+    volumeTestAlarmTimeoutId = setTimeout(() => {
+        playRandomBeep();
+    }, 250);
 });
 volumeControl.addEventListener('change', () => {
     volumeControl.blur(); // 조절 완료 시 포커스 해제
