@@ -8,16 +8,14 @@
     <link rel="icon" href="favicon.png" type="image/png">
 </head>
 <body>
-    <div class="app-title">MAPLE TIMER</div>
     <div class="main-card">
         <div class="volume-row">
             <span id="volumeIcon" class="volume-icon">🔊</span>
             <input type="range" id="volumeControl" min="0" max="100" value="30">
         </div>
 
-        <div class="content-wrapper mini-panel-hidden">
-            <!-- 좌측 패널: 메인 타이머 영역 -->
-            <div class="left-panel">
+        <!-- 좌측 패널: 메인 타이머 영역 -->
+        <div class="left-panel">
                 <div class="main-controls">
                     <div class="input-row">
                         <div class="input-group">
@@ -30,8 +28,8 @@
 
                 <div class="timer-container">
                     <svg class="progress-ring" width="280" height="280"> <!-- 크기 소폭 조절 -->
-                        <circle class="progress-ring__circle-bg" stroke="#333" stroke-width="10" fill="transparent" r="125" cx="140" cy="140"/>
-                        <circle class="progress-ring__circle" stroke="#ffcc00" stroke-width="10" fill="transparent" r="125" cx="140" cy="140"/>
+                        <circle class="ring-track" stroke="#333" stroke-width="10" fill="transparent" r="125" cx="140" cy="140"/>
+                        <circle class="ring-progress" stroke="#ffcc00" stroke-width="10" fill="transparent" r="125" cx="140" cy="140"/>
                     </svg>
                     <div class="timer-text">
                         <div id="countdownTimer">01:40</div>
@@ -39,24 +37,11 @@
                     </div>
                 </div>
 
-            </div>
-
-            <!-- 우측 패널: 보조 타이머 리스트 영역 -->
-            <div class="right-panel">
-                <div id="miniTimersList" class="mini-timers-list">
-                    <!-- 동적 추가 -->
+                <div class="button-container full-width">
+                    <button id="start" class="start">START</button>
                 </div>
-                <button id="addMiniTimer" class="add-mini-btn">보조 타이머 추가</button>
+
             </div>
-        </div> <!-- end of content-wrapper -->
-
-        <div class="panel-toggle-row">
-            <button id="toggleMiniPanel" class="panel-toggle-btn" type="button">보조 타이머 <span class="panel-toggle-arrow panel-toggle-arrow-right" aria-hidden="true"></span></button>
-        </div>
-
-        <div class="button-container full-width">
-            <button id="start" class="start">START</button>
-        </div>
     </div> <!-- end of main-card -->
     <audio id="beep" src="beep.mp3" preload="auto"></audio>
 

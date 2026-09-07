@@ -14,17 +14,6 @@ body {
     user-select: none;
 }
 
-.app-title {
-    font-size: 2.0rem;
-    font-weight: 700;
-    margin-bottom: 25px;
-    letter-spacing: normal;
-    color: #ffffff;
-    opacity: 0.8;
-    font-family: 'Pretendard', sans-serif;
-    text-transform: uppercase;
-}
-
 .main-card {
     background-color: #1e1e1e;
     padding: 20px;
@@ -34,139 +23,14 @@ body {
     overflow: hidden;
 }
 
-.content-wrapper {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-    transition: gap 0.35s ease;
-}
-
-.content-wrapper.mini-panel-hidden .right-panel {
-    flex: 0 0 0;
-    width: 0;
-    max-width: 0;
-    min-width: 0;
-    height: 0; /* 패널 숨김 시 높이 제거 */
-    padding: 0;
-    border-width: 0;
-    opacity: 0;
-    transform: translateX(24px);
-    pointer-events: none;
-}
-
-.content-wrapper.mini-panel-hidden {
-    gap: 0;
-}
-
-.panel-toggle-row {
-    display: flex;
-    justify-content: center;
-    width: 100%;
-    margin-top: 0;
-}
-
-.panel-toggle-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    background-color: #252525;
-    border: 1px solid #444;
-    color: #cfcfcf;
-    width: 100%;
-    padding: 12px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1.02rem;
-    font-weight: bold;
-    text-align: center;
-    white-space: nowrap;
-    transition: all 0.2s;
-}
-
-.panel-toggle-arrow {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 999px;
-    background-color: #333;
-    position: relative;
-    flex: 0 0 auto;
-}
-
-.panel-toggle-arrow::before {
-    content: "";
-    display: block;
-    width: 7px;
-    height: 7px;
-    border-top: 2px solid #ffcc00;
-    border-right: 2px solid #ffcc00;
-}
-
-.panel-toggle-arrow-right::before {
-    transform: rotate(45deg) translate(-1px, 1px);
-}
-
-.panel-toggle-arrow-left::before {
-    transform: rotate(-135deg) translate(-1px, 1px);
-}
-
-.panel-toggle-btn:hover {
-    color: #ffcc00;
-    border-color: #ffcc00;
-    background-color: #2a2a2a;
-}
-
-.panel-toggle-btn:hover .panel-toggle-arrow {
-    background-color: #ffcc00;
-}
-
-.panel-toggle-btn:hover .panel-toggle-arrow::before {
-    border-color: #1f1f1f;
-}
-
-/* 좌측 패널: 메인 타이머 */
+/* 메인 타이머 영역 */
 .left-panel {
-    align-self: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 15px;
-    padding: 10px;
+    padding: 10px 10px 0 10px;
     min-width: 340px;
-}
-
-/* 우측 패널: 보조 타이머 리스트 */
-.right-panel {
-    display: flex;
-    flex-direction: column;
-    flex: 0 0 300px;
-    width: 300px; 
-    max-width: 300px;
-    min-width: 300px;
-    background-color: #1a1a1a;
-    border-radius: 10px; 
-    padding: 15px;
-    border: 1px solid #2a2a2a;
-    height: 450px; /* 고정 높이로 변경 */
-    box-sizing: border-box;
-    overflow: hidden;
-    opacity: 1;
-    transform: translateX(0);
-    transition: flex-basis 0.35s ease, width 0.35s ease, max-width 0.35s ease, min-width 0.35s ease, height 0.35s ease, padding 0.35s ease, border-width 0.35s ease, opacity 0.25s ease, transform 0.35s ease;
-}
-
-.side-header {
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: bold;
-    letter-spacing: 1px;
-    margin-bottom: 15px;
-    text-align: center;
-    border-bottom: 1px solid #2a2a2a;
-    padding-bottom: 8px;
 }
 
 /* 메인 컨트롤 영역 */
@@ -187,7 +51,8 @@ body {
     border: 2px solid #3a3a3a;
     border-radius: 9px; /* 8px * 1.15 */
     padding: 9px 23px; /* 8px 20px * 1.15 */
-    width: 200px; /* 볼륨 바(220px)에 맞춰 확대 */
+    width: 100%; /* START 버튼과 동일 폭으로 확장 */
+    box-sizing: border-box; /* padding 포함 폭 = START 버튼과 동일 */
     transition: all 0.3s ease; /* transition 강화 */
     cursor: pointer; /* 호버 시 포인터 커서 추가 */
 }
@@ -233,198 +98,6 @@ body {
     font-weight: bold;
     color: #666;
     margin-left: 9px; /* 8px * 1.15 */
-}
-
-/* 보조 타이머 리스트 */
-.mini-timers-list {
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1; /* 가용한 공간 모두 차지 */
-    overflow-y: auto;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-}
-
-.mini-timers-list::-webkit-scrollbar {
-    display: none;
-}
-
-.mini-timer-row {
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 12px 14px;
-    background-color: #222;
-    border-radius: 10px;
-    border: 1px solid #2a2a2a;
-    gap: 12px;
-    margin-bottom: 12px;
-}
-
-.mini-timer-row.inactive {
-    background-color: #1f1f1f;
-}
-
-.mini-timer-row.inactive .mini-switch,
-.mini-timer-row.inactive .mini-label-input,
-.mini-timer-row.inactive .mini-time-input,
-.mini-timer-row.inactive .mini-progress-track {
-    opacity: 0.4;
-}
-
-.add-mini-btn {
-    margin-top: 0; 
-    background-color: #252525;
-    border: 1px solid #444; /* dashed -> solid 변경 */
-    color: #cfcfcf;
-    width: 100%;
-    padding: 12px;
-    border-radius: 6px; 
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: bold;
-    transition: all 0.2s;
-}
-
-.add-mini-btn:hover {
-    color: #ffcc00;
-    border-color: #ffcc00;
-    background-color: #2a2a2a;
-}
-
-/* 토글/스위치 */
-.mini-switch {
-    position: relative;
-    display: inline-block;
-    flex: 0 0 auto;
-    width: 42px;
-    height: 22px;
-    align-self: center;
-}
-
-.mini-switch input { opacity: 0; width: 0; height: 0; }
-
-.slider {
-    position: absolute; cursor: pointer;
-    top: 0; left: 0; right: 0; bottom: 0;
-    background-color: #333; transition: .4s; border-radius: 11px;
-}
-
-.slider:before {
-    position: absolute; content: "";
-    height: 16px; width: 16px;
-    left: 3px; bottom: 3px;
-    background-color: #eee; transition: .4s; border-radius: 50%;
-}
-
-input:checked + .slider { background-color: #ffcc00; }
-input:checked + .slider:before { transform: translateX(20px); background-color: #fff; }
-
-.mini-content {
-    display: flex;
-    flex: 1 1 auto;
-    min-width: 0;
-    flex-direction: column;
-    align-items: center;
-    gap: 9px;
-}
-
-.mini-label-input {
-    background: transparent;
-    border: none;
-    color: #cfcfcf;
-    font-size: 0.88rem;
-    font-weight: 600;
-    width: 100%;
-    min-width: 0;
-    text-align: center;
-    padding: 0 0 1px;
-    outline: none;
-    cursor: text;
-    line-height: 1.2;
-}
-
-.mini-label-input::placeholder {
-    color: #8a8a8a;
-}
-
-.mini-label-input:disabled {
-    color: #cfcfcf;
-    cursor: default;
-}
-
-.mini-time-input {
-    background: transparent;
-    border: none;
-    color: #ffcc00;
-    font-size: 1.18rem;
-    font-weight: bold;
-    width: 100%;
-    min-width: 0;
-    text-align: center;
-    padding: 0;
-    outline: none;
-    cursor: text;
-    line-height: 1.15;
-}
-
-.mini-time-input:disabled {
-    color: #ffcc00;
-    cursor: default;
-}
-
-.mini-progress-track {
-    position: relative;
-    width: 100%;
-    height: 8px;
-    margin-top: 2px;
-    border-radius: 999px;
-    background-color: #333;
-    overflow: hidden;
-}
-
-.mini-progress-fill {
-    height: 100%;
-    width: 100%;
-    border-radius: inherit;
-    background: linear-gradient(90deg, #ffcc00 0%, #ff9900 100%);
-    transform: scaleX(1);
-    transform-origin: left center;
-}
-
-.remove-mini-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 26px;
-    height: 26px;
-    background: rgba(255, 77, 77, 0.08);
-    border: none;
-    color: #ff4d4d;
-    border-radius: 999px;
-    font-size: 1.05rem;
-    font-weight: 700;
-    flex: 0 0 auto;
-    cursor: pointer;
-    padding: 0;
-    align-self: center;
-    opacity: 0.9;
-    transition: all 0.2s;
-}
-
-.mini-timer-row.inactive .remove-mini-btn {
-    opacity: 0.72;
-}
-
-.mini-timer-row.inactive .remove-mini-btn:hover {
-    opacity: 1;
-    color: #ff6b6b;
-    background: rgba(255, 77, 77, 0.16);
-}
-
-.remove-mini-btn:hover {
-    opacity: 1;
-    background: rgba(255, 77, 77, 0.16);
 }
 
 /* 볼륨 슬라이더 - 프리미엄 통합 바 디자인 */
@@ -543,7 +216,7 @@ input:checked + .slider:before { transform: translateX(20px); background-color: 
 /* START 버튼 - 전체 확장 */
 .button-container.full-width {
     width: 100%;
-    margin-top: 25px; 
+    margin-top: 0;
     display: flex;
     justify-content: center;
 }
