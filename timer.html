@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>메이플 심플 타이머</title>
+    <title>Maple Timer</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" href="favicon.png" type="image/png">
 </head>
@@ -12,6 +12,7 @@
         <div class="volume-row">
             <span id="volumeIcon" class="volume-icon">🔊</span>
             <input type="range" id="volumeControl" min="0" max="100" value="30">
+            <div id="volumeBubble" class="volume-bubble" aria-hidden="true"></div>
         </div>
 
         <!-- 좌측 패널: 메인 타이머 영역 -->
@@ -43,7 +44,7 @@
 
             </div>
     </div> <!-- end of main-card -->
-    <audio id="beep" src="beep.mp3" preload="auto"></audio>
+    <audio id="beep" src="sounds/beep.mp3" preload="auto"></audio>
 
     <script src="script.js"></script>
 </body>

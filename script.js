@@ -2,7 +2,7 @@ let countdownSeconds = 0;
 let animationId;
 let randomSoundIntervalId;
 let timerWorker;
-let volumeTestAlarmTimeoutId = null; // 볼륨 조절 완료(드래그 종료) 후 알림음 재생(0.25초 지연)용
+let lastVolumeFeedbackSoundTime = 0; // 볼륨 조절 피드백음 1.5초 이내 반복 방지용
 
 // Web Worker를 문자열로 생성 (별도 파일 없이 사용 가능)
 const workerCode = `
@@ -35,10 +35,39 @@ function setProgress(percent) {
     circle.style.strokeDashoffset = offset;
 }
 
-const startSound = new Audio('start.mp3');
-const resetSound = new Audio('reset.mp3');
-const beepSound = new Audio('beep.mp3');
-// const silentSound = new Audio('silent.mp3'); // 백그라운드 유지를 위한 무음 사운드
+// START 시 노란 원을 일정한 속도로 채우는 애니메이션
+let ringFillAnimationId = null;
+const RING_FILL_DURATION_MS = 267;
+
+function animateRingFill() {
+    if (ringFillAnimationId) {
+        cancelAnimationFrame(ringFillAnimationId);
+        ringFillAnimationId = null;
+    }
+
+    setProgress(0);
+    const start = performance.now();
+
+    function frame(now) {
+        const t = Math.min(1, (now - start) / RING_FILL_DURATION_MS);
+
+        // 일정한 속도로 채우기 (선형, 탄력 효과 없음)
+        setProgress(t * 100);
+
+        if (t < 1) {
+            ringFillAnimationId = requestAnimationFrame(frame);
+        } else {
+            ringFillAnimationId = null;
+        }
+    }
+
+    ringFillAnimationId = requestAnimationFrame(frame);
+}
+
+const startSound = new Audio('sounds/start.mp3');
+const resetSound = new Audio('sounds/reset.mp3');
+const beepSound = new Audio('sounds/beep.mp3');
+// const silentSound = new Audio('silent.mp3'); // 백그라운드 유지를 위한 무음 사운드 (미사용)
 // silentSound.loop = true;
 
 // Web Audio API를 이용한 백그라운드 유지 로직
@@ -83,6 +112,9 @@ document.addEventListener('visibilitychange', () => {
 
 const volumeControl = document.getElementById('volumeControl');
 const volumeIcon = document.getElementById('volumeIcon');
+const volumeBubble = document.getElementById('volumeBubble');
+let volumeBubbleHideTimeoutId = null;
+const VOLUME_BUBBLE_SHOW_MS = 1500; // 볼륨 말풍선 표시 유지 시간 (마지막 조절 후 1.5초 뒤 페이드 아웃)
 
 // 모든 사운드의 볼륨을 한 번에 설정하는 함수
 function updateAllVolumes() {
@@ -100,6 +132,37 @@ function updateAllVolumes() {
     } else {
         volumeIcon.innerText = '🔊';
     }
+}
+
+// 볼륨 퍼센트 말풍선 표시 (슬라이더 핸들 위에, 마지막 조절 후 약 1.5초 뒤 페이드 아웃)
+function showVolumeBubble() {
+    const value = parseInt(volumeControl.value, 10) || 0;
+    volumeBubble.innerText = value + '%';
+
+    // 슬라이더 트랙 기준 핸들 위치(X)를 계산해 말풍선을 그 위에 정렬
+    const sliderRect = volumeControl.getBoundingClientRect();
+    const percent = value / 100;
+    const handleX = sliderRect.left + sliderRect.width * percent;
+    volumeBubble.style.left = handleX + 'px';
+    volumeBubble.style.top = (sliderRect.top - 10) + 'px'; // 말풍선 하단이 핸들 위 10px
+
+    volumeBubble.classList.add('show');
+
+    // 조절할 때마다 타이머 리셋 → 마지막 조절 후 약 1.5초 뒤 사라짐
+    clearTimeout(volumeBubbleHideTimeoutId);
+    volumeBubbleHideTimeoutId = setTimeout(() => {
+        volumeBubble.classList.remove('show');
+    }, VOLUME_BUBBLE_SHOW_MS);
+}
+
+// 볼륨 조절 피드백음 (실제 알람음과는 별개).
+// 마지막 재생 후 1.5초 이내에는 반복 재생되지 않도록 쿨다운 처리.
+const VOLUME_FEEDBACK_MIN_INTERVAL_MS = 1500;
+function playVolumeFeedbackSound() {
+    const now = Date.now();
+    if (now - lastVolumeFeedbackSoundTime < VOLUME_FEEDBACK_MIN_INTERVAL_MS) return;
+    lastVolumeFeedbackSoundTime = now;
+    playRandomBeep();
 }
 
 // 랜덤 비프음 재생
@@ -125,16 +188,14 @@ volumeControl.addEventListener('input', () => {
     // 볼륨 값만 실시간 반영한다.
     updateAllVolumes();
     saveSettings();
+    showVolumeBubble();
 });
 volumeControl.addEventListener('change', () => {
     volumeControl.blur(); // 조절 완료 시 포커스 해제
+    showVolumeBubble();
 
-    // [테스트용] 드래그를 끝내고 손을 뗀 순간(change)에만 알림음 1회 재생(0.225초 지연).
-    // 드래그 중간에 짧게 멈춰도 소리가 반복되지 않는다.
-    clearTimeout(volumeTestAlarmTimeoutId);
-    volumeTestAlarmTimeoutId = setTimeout(() => {
-        playRandomBeep();
-    }, 225);
+    // 드래그 종료 시 피드백음 재생 (1.5초 이내 반복 방지)
+    playVolumeFeedbackSound();
 });
 volumeControl.addEventListener('mousedown', () => {
     // 클릭하는 순간 포커스 테두리가 생기지 않도록 blur 처리 (약간의 지연 필요)
@@ -146,7 +207,7 @@ function initializeCountdownDisplay() {
     const specifiedDuration = parseInt(durationInput.value, 10) || 100;
     countdownSeconds = specifiedDuration;
     updateCountdownDisplay();
-    setProgress(100);
+    setProgress(0); // 시작 전/리셋 후에는 노란 원을 비워 둔다
 }
 
 // 설정 저장 함수
@@ -263,7 +324,8 @@ function startTimer() {
         const remainingMs = durationMs - msIntoCurrentCycle;
         const smoothPercent = (remainingMs / durationMs) * 100;
         
-        setProgress(smoothPercent);
+        // START 직후 탄력 채우기 애니메이션 중에는 링을 그쪽이 그리도록 넘긴다
+        if (!ringFillAnimationId) setProgress(smoothPercent);
 
         const t = 1 - (remainingMs / durationMs);
         const r = 255;
@@ -282,6 +344,11 @@ function stopTimer() {
         cancelAnimationFrame(animationId);
         animationId = null;
     }
+    // 채우기 애니메이션 중이었다면 중단
+    if (ringFillAnimationId) {
+        cancelAnimationFrame(ringFillAnimationId);
+        ringFillAnimationId = null;
+    }
     if (timerWorker) {
         timerWorker.postMessage('stop');
     }
@@ -298,6 +365,7 @@ function toggleMainTimer() {
     const startButton = document.getElementById('start');
     if (!animationId) {
         startTimer();
+        animateRingFill(); // 노란 원 탄력 배지어 채우기 애니메이션
         startButton.classList.add('active');
         startButton.innerText = "RESET";
         randomSoundIntervalId = setInterval(playRandomBeep2to20, 20000);
@@ -328,6 +396,21 @@ function playRandomBeep() {
 
 document.getElementById('start').addEventListener('click', toggleMainTimer);
 
+// 방향키로 볼륨 조절 (1회 누름 = 5%씩)
+function adjustVolume(delta) {
+    const current = parseInt(volumeControl.value, 10) || 0;
+    const newValue = Math.min(100, Math.max(0, current + delta));
+    if (newValue === current) return; // 최소/최대 한계라 변경 없으면 무시
+
+    volumeControl.value = newValue;
+    updateAllVolumes();
+    saveSettings();
+    showVolumeBubble();
+
+    // 키보드 조절 시에도 피드백음 재생 (1.5초 이내 반복 방지)
+    playVolumeFeedbackSound();
+}
+
 document.addEventListener('keydown', (e) => {
     const activeElement = document.activeElement;
     // 텍스트를 입력하는 필드인지 더 정확하게 판별 (range, checkbox 등은 제외)
@@ -338,7 +421,23 @@ document.addEventListener('keydown', (e) => {
     );
 
     if (isTypingField) return;
+
+    // 방향키 볼륨 조절: 좌/아래 = 낮추기, 우/위 = 높이기
+    // 꾹 누르면 OS 키 반복(e.repeat)을 허용해 연속으로 조절
+    if (e.code === 'ArrowUp' || e.code === 'ArrowRight') {
+        e.preventDefault();
+        adjustVolume(5);
+        return;
+    }
+    if (e.code === 'ArrowDown' || e.code === 'ArrowLeft') {
+        e.preventDefault();
+        adjustVolume(-5);
+        return;
+    }
+
+    // Space / Enter 타이머 토글은 홀드 반복 방지 (단발 동작 유지)
     if (e.repeat) return;
+
     if (e.code !== 'Space' && e.code !== 'Enter' && e.code !== 'NumpadEnter') return;
 
     e.preventDefault();
@@ -350,4 +449,10 @@ document.getElementById('timerDuration').addEventListener('keypress', (e) => {
         e.preventDefault();
         document.getElementById('start').click();
     }
+});
+
+// 타이머 시간 입력칸에 커서를 넣으면(클릭/포커스) 리셋 버튼과 동일한 소리 재생
+document.getElementById('timerDuration').addEventListener('focus', () => {
+    resetSound.currentTime = 0;
+    resetSound.play().catch(error => console.error("리셋 소리 재생 오류:", error));
 });
