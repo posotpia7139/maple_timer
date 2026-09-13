@@ -83,6 +83,7 @@ body {
     width: 104px; /* 90px * 1.15 */
     text-align: center;
     outline: none;
+    appearance: textfield;
     -moz-appearance: textfield;
     cursor: pointer; /* 입력 필드 자체에도 포인터 추가 */
 }
@@ -146,15 +147,11 @@ body {
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.5);
     left: 0;
     top: 0; /* left/top 은 JS 에서 슬라이더 핸들 위치 기준으로 설정 */
-    transform-origin: 50% 100%; /* 꼬리 지점 기준으로 탄력 애니메이션 */
-    transform: translate(-50%, -100%) scale(0.9);
+    transform: translate(-50%, -100%);
     opacity: 0;
     visibility: hidden;
-    /* 사라질 때 Back 배지어 곡선 적용 - 살짝 부풀었다가 줄어들며 페이드 아웃 */
-    transition:
-        opacity 0.45s cubic-bezier(0.68, -0.55, 0.265, 1.55),
-        transform 0.45s cubic-bezier(0.68, -0.55, 0.265, 1.55),
-        visibility 0s linear 0.45s;
+    /* 사라질 때 일반 페이드 아웃 (배지어 곡선 없음, 더 빠르게) */
+    transition: opacity 0.25s ease, visibility 0s linear 0.25s;
 }
 
 /* 말풍선 꼬리 */
@@ -171,9 +168,9 @@ body {
 .volume-bubble.show {
     opacity: 1;
     visibility: visible;
-    /* fill-mode 없이 애니메이션 종료 후에도 scale(1) 을 클래스 선언으로 유지
-       -> .show 를 제거할 때 애니메이션이 관여하지 않아 아래 base transition(배지어 페이드 아웃)이 항상 동작 */
-    transform: translate(-50%, -100%) scale(1);
+    /* fill-mode 없이 애니메이션 종료 후에도 상태를 클래스 선언으로 유지
+       -> .show 제거 시 애니메이션이 관여하지 않아 base transition(일반 페이드 아웃)이 항상 동작 */
+    transform: translate(-50%, -100%);
     transition: opacity 0.15s ease, visibility 0s;
     animation: volumeBubbleIn 0.18s ease-out;
 }
